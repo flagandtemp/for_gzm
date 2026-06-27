@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌾 FarmVille V2</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --soil:#8B5E3C;--soil-dark:#6B4226;--grass:#5A9E44;--grass-dark:#3E7A2B;
+  --sky:#87CEEB;--sky-light:#C5E8FF;--gold:#F9A825;--gold-dark:#F57F17;
+  --gold-light:#FFF9C4;--green:#2E7D32;--green-light:#C8E6C9;--red:#C62828;
+  --blue:#1565C0;--purple:#6A1B9A;--teal:#00695C;--brown:#5D4037;
+  --cream:#FFF8E1;--text:#2C1810;--text-light:#6D4C41;--shadow:rgba(0,0,0,0.25);
+  --tile-size:58px;--hud-h:68px;--panel-bg:rgba(255,248,225,0.97);
+  --font-main:'Segoe UI','Arial Rounded MT Bold',Arial,sans-serif;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:#87CEEB;font-family:var(--font-main);user-select:none;-webkit-user-select:none}
+#hud{position:fixed;top:0;left:0;right:0;height:var(--hud-h);background:linear-gradient(180deg,#2E7D32,#1B5E20);border-bottom:3px solid #F9A825;display:flex;align-items:center;padding:0 12px;gap:8px;z-index:100;box-shadow:0 3px 12px rgba(0,0,0,.35)}
+#hud-logo{font-size:20px;font-weight:900;color:#F9A825;text-shadow:1px 2px 0 #000,0 0 12px #F57F17;letter-spacing:-.5px;white-space:nowrap}
+.hud-stat{display:flex;align-items:center;gap:5px;background:rgba(0,0,0,.3);border:1.5px solid rgba(255,255,255,.15);border-radius:20px;padding:4px 10px;color:#fff;font-size:13px;font-weight:700;min-width:80px}
+.hud-stat .icon{font-size:15px}.hud-stat .val{color:#F9A825;font-size:14px;margin-left:2px}
+.hud-level{background:linear-gradient(135deg,#F9A825,#F57F17);color:#fff;font-weight:900;font-size:13px;padding:4px 10px;border-radius:20px;border:2px solid #FFF9C4;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.xp-bar-wrap{flex:1;max-width:180px;min-width:60px;display:flex;flex-direction:column;gap:2px}
+.xp-bar-label{color:#C8E6C9;font-size:10px;font-weight:600}
+.xp-bar-track{height:10px;background:rgba(0,0,0,.4);border-radius:5px;overflow:hidden;border:1px solid rgba(255,255,255,.15)}
+.xp-bar-fill{height:100%;background:linear-gradient(90deg,#69F0AE,#00BFA5);border-radius:5px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.hud-sep{width:1px;height:36px;background:rgba(255,255,255,.2);margin:0 2px}
+#hud-right{margin-left:auto;display:flex;gap:6px}
+.hud-btn{background:linear-gradient(180deg,#4CAF50,#2E7D32);color:#fff;border:2px solid #A5D6A7;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;box-shadow:0 2px 5px rgba(0,0,0,.3)}
+.hud-btn:hover{transform:translateY(-1px);filter:brightness(1.1)}
+.hud-btn.gold-btn{background:linear-gradient(180deg,#F9A825,#F57F17);border-color:#FFF9C4}
+.hud-btn.emergency-btn{background:linear-gradient(180deg,#e53935,#b71c1c);border-color:#ffcdd2;animation:emerg-pulse 2s ease-in-out infinite}
+@keyframes emerg-pulse{0%,100%{box-shadow:0 2px 5px rgba(0,0,0,.3)}50%{box-shadow:0 2px 14px rgba(229,57,53,.7)}}
+#toolbar{position:fixed;bottom:0;left:0;right:0;height:72px;background:linear-gradient(180deg,#4E342E,#3E2723);border-top:3px solid #F9A825;display:flex;align-items:center;justify-content:center;gap:5px;padding:0 8px;z-index:100;box-shadow:0 -3px 12px rgba(0,0,0,.4)}
+.tool-btn{width:52px;height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:linear-gradient(180deg,#6D4C41,#4E342E);border:2px solid #8D6E63;border-radius:10px;cursor:pointer;transition:all .15s;position:relative;font-size:20px;color:#fff}
+.tool-btn span.lbl{font-size:8px;color:#D7CCC8;font-weight:600;line-height:1;text-align:center}
+.tool-btn:hover{background:linear-gradient(180deg,#8D6E63,#6D4C41);transform:translateY(-2px)}
+.tool-btn.active{background:linear-gradient(180deg,#F9A825,#F57F17);border-color:#FFF9C4;transform:translateY(-3px);box-shadow:0 4px 12px rgba(249,168,37,.5)}
+.tool-btn.active span.lbl{color:#fff}
+.tool-btn.sell-btn{border-color:#ef9a9a}
+#game-world{position:fixed;top:var(--hud-h);left:0;right:0;bottom:72px;overflow:hidden;cursor:grab}
+#game-world.dragging{cursor:grabbing}
+#sky-bg{position:absolute;inset:0;background:linear-gradient(180deg,#87CEEB 0%,#B3E5FC 60%,#C5E8FF 100%);pointer-events:none}
+.cloud{position:absolute;background:rgba(255,255,255,.85);border-radius:50px;animation:cloud-drift linear infinite;pointer-events:none}
+.cloud::before,.cloud::after{content:'';position:absolute;background:rgba(255,255,255,.85);border-radius:50%}
+@keyframes cloud-drift{from{transform:translateX(-200px)}to{transform:translateX(calc(100vw + 200px))}}
+#world-container{position:absolute;transform-origin:0 0;cursor:inherit}
+#farm-ground{position:absolute;background:linear-gradient(180deg,#6DB33F 0%,#5A9E44 40%,#4A8A30 100%);border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.zone-locked-overlay{position:absolute;background:rgba(0,0,0,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;z-index:10;transition:background .2s;border-radius:4px}
+.zone-locked-overlay:hover{background:rgba(0,0,0,.4)}
+.zone-lock-icon{font-size:26px}.zone-lock-price{color:#F9A825;font-size:13px;font-weight:900;text-shadow:0 1px 3px #000}
+.zone-lock-label{color:#fff;font-size:10px;font-weight:700;text-shadow:0 1px 3px #000}
+#farm-grid{position:absolute;top:20px;left:20px;display:grid}
+.tile{width:var(--tile-size);height:var(--tile-size);border:1px solid rgba(0,0,0,.1);cursor:pointer;position:relative;overflow:hidden;transition:filter .1s;display:flex;align-items:center;justify-content:center;font-size:28px}
+.tile::before{content:'';position:absolute;inset:0;background:rgba(255,255,255,0);transition:background .1s;pointer-events:none;z-index:1}
+.tile:hover::before{background:rgba(255,255,255,.2)}
+.tile.tile-empty{background:linear-gradient(135deg,#5A9E44,#4A8A30)}
+.tile.tile-plowed{background:repeating-linear-gradient(0deg,#7B4A2C 0px,#7B4A2C 4px,#8B5E3C 4px,#8B5E3C 8px)}
+.tile.tile-crop{background:#7B5A3A}
+.tile.tile-ready{background:#8B6040;animation:pulse-glow 2s ease-in-out infinite}
+.tile.tile-withered{background:#555;filter:grayscale(.7)}
+@keyframes pulse-glow{0%,100%{box-shadow:inset 0 0 0 2px transparent}50%{box-shadow:inset 0 0 0 2px #F9A825}}
+.tile .crop-emoji{font-size:24px;position:relative;z-index:2;transition:transform .2s;line-height:1}
+.tile:hover .crop-emoji{transform:scale(1.1)}
+.tile .crop-stage{position:absolute;bottom:2px;left:0;right:0;height:3px;background:rgba(0,0,0,.3);z-index:2}
+.tile .crop-stage-fill{height:100%;background:linear-gradient(90deg,#69F0AE,#00BFA5);transition:width .5s}
+.tile.tile-ready .crop-stage-fill{background:linear-gradient(90deg,#F9A825,#F57F17)}
+.tile.tile-withered .crop-stage-fill{background:#777}
+.tile .crop-timer{position:absolute;top:2px;left:0;right:0;text-align:center;font-size:8px;color:#fff;font-weight:700;z-index:3;text-shadow:0 1px 2px #000;pointer-events:none}
+.tile.tile-animal{background:#A5D6A7}.tile.tile-building{background:#BBDEFB}
+.tile.tile-tree{background:#C8E6C9}.tile.tile-deco{background:#F8BBD0}
+.sparkle{position:fixed;pointer-events:none;z-index:200;font-size:18px;font-weight:900;color:#F9A825;text-shadow:0 1px 4px rgba(0,0,0,.5);animation:sparkle-up .9s ease-out forwards}
+@keyframes sparkle-up{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-60px) scale(.5)}}
+.panel-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);z-index:200;display:flex;align-items:center;justify-content:center;animation:fade-in .15s ease}
+@keyframes fade-in{from{opacity:0}to{opacity:1}}
+.panel{background:var(--panel-bg);border-radius:16px;border:3px solid #F9A825;box-shadow:0 8px 40px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.8);max-width:92vw;max-height:88vh;overflow-y:auto;animation:pop-in .2s cubic-bezier(.34,1.56,.64,1);position:relative}
+@keyframes pop-in{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+.panel-header{background:linear-gradient(180deg,#2E7D32,#1B5E20);border-radius:12px 12px 0 0;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #F9A825}
+.panel-title{color:#F9A825;font-size:18px;font-weight:900}
+.panel-close{background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;border-radius:50%;width:30px;height:30px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:900;transition:background .15s}
+.panel-close:hover{background:rgba(255,0,0,.4)}
+.panel-body{padding:16px 20px}
+.hint-box{background:linear-gradient(135deg,#E3F2FD,#E8F5E9);border:1.5px solid #90CAF9;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#1565C0;line-height:1.6}
+.hint-box .hint-title{font-weight:900;font-size:13px;color:#1A237E;margin-bottom:4px}
+.shop-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.shop-tab{padding:7px 14px;border-radius:20px;cursor:pointer;font-size:13px;font-weight:700;border:2px solid #ccc;background:#eee;color:#555;transition:all .15s}
+.shop-tab.active{background:linear-gradient(180deg,#2E7D32,#1B5E20);color:#F9A825;border-color:#F9A825}
+.shop-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.shop-item{background:linear-gradient(180deg,#fff,#F1F8E9);border:2px solid #A5D6A7;border-radius:12px;padding:10px;text-align:center;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+.shop-item:hover{border-color:#2E7D32;transform:translateY(-2px);box-shadow:0 4px 12px rgba(46,125,50,.3)}
+.shop-item.locked{opacity:.5;cursor:not-allowed;filter:grayscale(.6)}
+.shop-item .item-emoji{font-size:32px;display:block;margin-bottom:4px}
+.shop-item .item-name{font-size:11px;font-weight:700;color:var(--text)}
+.shop-item .item-time{font-size:10px;color:#888;margin:2px 0}
+.shop-item .item-price{font-size:12px;font-weight:900;color:#F57F17;display:flex;align-items:center;justify-content:center;gap:3px}
+.shop-item .item-xp{font-size:10px;color:#2E7D32;font-weight:700}
+.shop-item .item-lvl-badge{position:absolute;top:4px;right:4px;background:#6A1B9A;color:#fff;font-size:9px;font-weight:900;padding:1px 5px;border-radius:10px}
+#toast-area{position:fixed;top:calc(var(--hud-h) + 8px);right:12px;display:flex;flex-direction:column;gap:5px;z-index:300;pointer-events:none;align-items:flex-end;max-width:250px}
+.toast{background:rgba(30,30,30,.92);color:#fff;padding:6px 13px;border-radius:14px;font-size:12px;font-weight:700;border:1.5px solid rgba(255,255,255,.15);animation:toast-in .25s cubic-bezier(.34,1.56,.64,1);box-shadow:0 3px 10px rgba(0,0,0,.4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:250px}
+.toast.success{border-color:#69F0AE;background:rgba(27,94,32,.95)}
+.toast.warning{border-color:#F9A825;background:rgba(230,81,0,.95)}
+.toast.error{border-color:#FF5252;background:rgba(183,28,28,.95)}
+@keyframes toast-in{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes toast-out{from{transform:translateX(0);opacity:1}to{transform:translateX(40px);opacity:0}}
+#ctx-menu{position:fixed;z-index:150;background:var(--panel-bg);border:2px solid #F9A825;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.4);min-width:170px;overflow:hidden;animation:pop-in .15s cubic-bezier(.34,1.56,.64,1)}
+.ctx-btn{width:100%;padding:11px 16px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:var(--text);background:transparent;border:none;cursor:pointer;transition:background .1s;text-align:left}
+.ctx-btn:hover{background:#E8F5E9}.ctx-btn .ctx-icon{font-size:18px;width:24px;text-align:center}
+.ctx-btn.danger{color:#C62828}.ctx-btn.danger:hover{background:#FFEBEE}
+.ctx-divider{height:1px;background:#E0E0E0;margin:2px 0}
+#minimap{position:fixed;bottom:80px;right:12px;width:130px;height:100px;background:rgba(30,30,30,.8);border:2px solid #F9A825;border-radius:8px;overflow:hidden;z-index:90;cursor:pointer}
+#minimap canvas{width:100%;height:100%}
+#level-up-banner{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#F9A825,#F57F17);color:#fff;padding:14px 32px;border-radius:40px;font-size:18px;font-weight:900;box-shadow:0 6px 24px rgba(249,168,37,.6);border:3px solid #FFF9C4;z-index:250;animation:banner-in .4s cubic-bezier(.34,1.56,.64,1);display:none}
+@keyframes banner-in{from{transform:translateX(-50%) scale(.5);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
+#achievement-pop{position:fixed;top:80px;right:16px;background:linear-gradient(135deg,#6A1B9A,#4A148C);color:#fff;padding:12px 18px;border-radius:12px;font-size:13px;font-weight:700;box-shadow:0 6px 20px rgba(106,27,154,.5);border:2px solid #CE93D8;max-width:220px;z-index:250;display:none;animation:slide-in-right .3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes slide-in-right{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.bag-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.bag-item{background:linear-gradient(180deg,#fff,#F5F5F5);border:2px solid #E0E0E0;border-radius:10px;padding:8px;text-align:center;cursor:default;transition:all .15s}
+.bag-item:hover{border-color:#2E7D32}
+.bag-item .inv-emoji{font-size:26px}.bag-item .inv-name{font-size:9px;font-weight:700;color:var(--text);margin-top:2px}
+.bag-item .inv-qty{font-size:12px;font-weight:900;color:#2E7D32;background:#E8F5E9;border-radius:8px;padding:1px 6px;margin-top:3px;display:inline-block}
+.bag-item .inv-sell-price{font-size:9px;color:#F57F17;font-weight:700}
+.bag-sell-btn{width:100%;margin-top:5px;background:linear-gradient(180deg,#4CAF50,#2E7D32);color:#fff;border:none;border-radius:7px;padding:5px 0;font-size:10px;font-weight:900;cursor:pointer;transition:all .15s}
+.bag-sell-btn:hover{filter:brightness(1.1)}.bag-sell-btn.sell-all{background:linear-gradient(180deg,#F9A825,#F57F17)}
+.craft-item{background:linear-gradient(180deg,#fff,#FFF8E1);border:2px solid #F9A825;border-radius:12px;padding:12px;margin-bottom:10px}
+.craft-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.craft-emoji{font-size:28px}.craft-name{font-weight:900;font-size:14px;color:var(--text)}.craft-desc{font-size:11px;color:#777}
+.craft-ingredients{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.craft-ing{background:#E8F5E9;border:1.5px solid #A5D6A7;border-radius:8px;padding:4px 8px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px}
+.craft-ing.missing{background:#FFEBEE;border-color:#EF9A9A;color:#C62828}
+.craft-result{font-size:12px;color:#F57F17;font-weight:700;margin-top:4px}
+.craft-btn{width:100%;padding:8px;border-radius:8px;background:linear-gradient(180deg,#4CAF50,#2E7D32);color:#fff;border:none;font-size:13px;font-weight:900;cursor:pointer;margin-top:6px;transition:all .15s}
+.craft-btn:hover{filter:brightness(1.1)}.craft-btn:disabled{opacity:.5;cursor:not-allowed}
+.processing-bar-wrap{background:#E0E0E0;border-radius:8px;height:8px;margin-top:6px;overflow:hidden}
+.processing-bar-fill{height:100%;background:linear-gradient(90deg,#42A5F5,#1565C0);border-radius:8px;transition:width 1s linear}
+.ach-list{display:flex;flex-direction:column;gap:8px}
+.ach-item{display:flex;align-items:center;gap:12px;background:#F9F9F9;border-radius:10px;padding:10px 14px;border:2px solid #E0E0E0}
+.ach-item.unlocked{border-color:#F9A825;background:#FFF9C4}
+.ach-item .ach-icon{font-size:28px;width:36px;text-align:center}
+.ach-item .ach-info{flex:1}.ach-item .ach-name{font-size:13px;font-weight:900;color:var(--text)}
+.ach-item .ach-desc{font-size:11px;color:#777;margin-top:1px}
+.ach-item .ach-prog{font-size:11px;color:#2E7D32;font-weight:700;margin-top:3px}
+.ach-item .ach-badge{font-size:10px;background:#F9A825;color:#fff;padding:2px 8px;border-radius:10px;font-weight:900;white-space:nowrap}
+#welcome-screen{position:fixed;inset:0;background:linear-gradient(135deg,#1B5E20 0%,#2E7D32 50%,#388E3C 100%);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px}
+#welcome-screen h1{font-size:clamp(36px,8vw,72px);font-weight:900;color:#F9A825;text-shadow:3px 4px 0 #000,0 0 40px rgba(249,168,37,.4);letter-spacing:-1px}
+#welcome-screen .sub{font-size:18px;color:#C8E6C9;font-weight:600;text-align:center}
+#welcome-screen .start-btn{background:linear-gradient(180deg,#F9A825,#F57F17);color:#fff;border:3px solid #FFF9C4;border-radius:50px;padding:16px 48px;font-size:22px;font-weight:900;cursor:pointer;box-shadow:0 8px 24px rgba(249,168,37,.4);animation:pulse-btn 2s ease-in-out infinite;transition:transform .15s}
+#welcome-screen .start-btn:hover{transform:scale(1.05)}
+@keyframes pulse-btn{0%,100%{box-shadow:0 8px 24px rgba(249,168,37,.4)}50%{box-shadow:0 8px 40px rgba(249,168,37,.8)}}
+#welcome-screen .farm-icons{font-size:56px;display:flex;gap:16px}
+.name-input{background:rgba(255,255,255,.15);border:2px solid #F9A825;color:#fff;font-size:18px;font-weight:700;padding:10px 20px;border-radius:12px;text-align:center;outline:none;width:260px}
+.name-input::placeholder{color:rgba(255,255,255,.5)}
+.section-title{font-size:14px;font-weight:900;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #C8E6C9}
+.btn-primary{background:linear-gradient(180deg,#4CAF50,#2E7D32);color:#fff;border:2px solid #A5D6A7;border-radius:10px;padding:10px 22px;font-size:14px;font-weight:900;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.price-tag{display:inline-flex;align-items:center;gap:4px;color:#F57F17;font-weight:900;font-size:14px}
+</style>
+</head>
+<body>
+<!-- WELCOME -->
+<div id="welcome-screen">
+  <div class="farm-icons">🌱🐄🌾🐓🍎</div>
+  <h1>🌾 FarmVille</h1>
+  <p class="sub">Nostaljik çiftlik hayatı geri döndü!</p>
+  <input class="name-input" id="farmer-name-input" type="text" placeholder="Çiftçi adın nedir?" maxlength="16">
+  <button class="start-btn" onclick="startGame()">Çiftliğini Kur! 🚜</button>
+</div>
+<!-- HUD -->
+<div id="hud">
+  <span id="hud-logo">🌾 FarmVille</span>
+  <div class="hud-stat"><span class="icon">🪙</span><span class="val" id="hud-coins">0</span></div>
+  <div class="hud-stat"><span class="icon">💎</span><span class="val" id="hud-cash">5</span></div>
+  <div class="hud-sep"></div>
+  <div class="hud-level" id="hud-level">Seviye 1</div>
+  <div class="xp-bar-wrap">
+    <div class="xp-bar-label" id="xp-label">0/50 XP</div>
+    <div class="xp-bar-track"><div class="xp-bar-fill" id="xp-bar" style="width:0%"></div></div>
+  </div>
+  <div class="hud-sep"></div>
+  <div class="hud-stat" style="min-width:unset"><span class="icon">⭐</span><span class="val" id="hud-farmer">Çiftçi</span></div>
+  <div id="hud-right">
+    <button class="hud-btn" onclick="openPanel('shop')">🛒 Market</button>
+    <button class="hud-btn" onclick="openPanel('bag')">🎒 Çanta</button>
+    <button class="hud-btn" onclick="openPanel('achievements')">🏆 Başarım</button>
+    <button class="hud-btn gold-btn" onclick="openPanel('help')">❓</button>
+    <button class="hud-btn emergency-btn" onclick="emergencyGold()" title="Acil 50 Altın (yalnızca 200 altın altındayken)">🆘 50🪙</button>
+  </div>
+</div>
+<!-- GAME WORLD -->
+<div id="game-world">
+  <div id="sky-bg"></div>
+  <div id="world-container">
+    <div id="farm-ground"><div id="farm-grid"></div></div>
+  </div>
+</div>
+<!-- TOOLBAR -->
+<div id="toolbar">
+  <div class="tool-btn active" id="tool-hand" onclick="setTool('hand')"><span>👆</span><span class="lbl">El</span></div>
+  <div class="tool-btn" id="tool-plow" onclick="setTool('plow')"><span>⛏️</span><span class="lbl">Sür</span></div>
+  <div class="tool-btn" id="tool-seed" onclick="openPanel('seedSelect')"><span>🌱</span><span class="lbl">Ek</span></div>
+  <div class="tool-btn" id="tool-harvest" onclick="setTool('harvest')"><span>🌾</span><span class="lbl">Biç</span></div>
+  <div class="tool-btn sell-btn" id="tool-sell" onclick="setTool('sell')"><span>💸</span><span class="lbl">Zararına Sat</span></div>
+  <div class="tool-btn" id="tool-remove" onclick="setTool('remove')"><span>🗑️</span><span class="lbl">Kaldır</span></div>
+  <div class="hud-sep" style="background:rgba(255,255,255,.15)"></div>
+  <div class="tool-btn" onclick="openPanel('animals')"><span>🐄</span><span class="lbl">Hayvan</span></div>
+  <div class="tool-btn" onclick="openPanel('buildings')"><span>🏚️</span><span class="lbl">Bina</span></div>
+  <div class="tool-btn" onclick="openPanel('trees')"><span>🌳</span><span class="lbl">Ağaç</span></div>
+  <div class="hud-sep" style="background:rgba(255,255,255,.15)"></div>
+  <div class="tool-btn" onclick="zoomIn()"><span>🔍</span><span class="lbl">Yakın</span></div>
+  <div class="tool-btn" onclick="zoomOut()"><span>🔎</span><span class="lbl">Uzak</span></div>
+  <div class="tool-btn" onclick="centerFarm()"><span>🏠</span><span class="lbl">Merkez</span></div>
+</div>
+<div id="minimap"><canvas id="minimap-canvas" width="130" height="100"></canvas></div>
+<div id="level-up-banner">🎉 SEVİYE ATLADI!</div>
+<div id="achievement-pop"></div>
+<div id="toast-area"></div>
+<div id="ctx-menu" style="display:none"></div>
+<div id="panel-overlay" class="panel-overlay" style="display:none" onclick="closePanelOnOverlay(event)">
+  <div class="panel" id="main-panel" style="width:460px">
+    <div class="panel-header">
+      <span class="panel-title" id="panel-title">Panel</span>
+      <button class="panel-close" onclick="closePanel()">✕</button>
+    </div>
+    <div class="panel-body" id="panel-body"></div>
+  </div>
+</div>
+<script>
+/* ===== DATA ===== */
+const CROPS=[
+  {id:'strawberry',name:'Çilek',emoji:'🍓',growTime:15,buyPrice:10,sellPrice:25,xp:2,minLevel:1},
+  {id:'wheat',name:'Buğday',emoji:'🌾',growTime:45,buyPrice:15,sellPrice:40,xp:3,minLevel:1},
+  {id:'corn',name:'Mısır',emoji:'🌽',growTime:90,buyPrice:25,sellPrice:70,xp:5,minLevel:2},
+  {id:'sunflower',name:'Ayçiçeği',emoji:'🌻',growTime:60,buyPrice:30,sellPrice:85,xp:6,minLevel:3},
+  {id:'tomato',name:'Domates',emoji:'🍅',growTime:30,buyPrice:20,sellPrice:55,xp:4,minLevel:2},
+  {id:'carrot',name:'Havuç',emoji:'🥕',growTime:120,buyPrice:40,sellPrice:110,xp:8,minLevel:4},
+  {id:'cotton',name:'Pamuk',emoji:'☁️',growTime:180,buyPrice:60,sellPrice:175,xp:12,minLevel:6},
+  {id:'grape',name:'Üzüm',emoji:'🍇',growTime:240,buyPrice:80,sellPrice:230,xp:15,minLevel:8},
+  {id:'pumpkin',name:'Kabak',emoji:'🎃',growTime:150,buyPrice:50,sellPrice:145,xp:10,minLevel:5},
+  {id:'blueberry',name:'Yaban Mersini',emoji:'🫐',growTime:360,buyPrice:120,sellPrice:350,xp:20,minLevel:10},
+  {id:'chili',name:'Biber',emoji:'🌶️',growTime:200,buyPrice:70,sellPrice:200,xp:14,minLevel:7},
+  {id:'watermelon',name:'Karpuz',emoji:'🍉',growTime:480,buyPrice:150,sellPrice:430,xp:25,minLevel:12},
+];
+const ANIMALS=[
+  {id:'chicken',name:'Tavuk',emoji:'🐓',harvestTime:20,product:'yumurta',productEmoji:'🥚',productName:'Yumurta',xp:3,cost:200,minLevel:3},
+  {id:'cow',name:'İnek',emoji:'🐄',harvestTime:60,product:'sut',productEmoji:'🥛',productName:'Süt',xp:8,cost:500,minLevel:5},
+  {id:'sheep',name:'Koyun',emoji:'🐑',harvestTime:120,product:'yun',productEmoji:'🧶',productName:'Yün',xp:12,cost:800,minLevel:8},
+  {id:'pig',name:'Domuz',emoji:'🐷',harvestTime:80,product:'et',productEmoji:'🥩',productName:'Et',xp:10,cost:650,minLevel:6},
+  {id:'duck',name:'Ördek',emoji:'🦆',harvestTime:30,product:'ordek_yumurta',productEmoji:'🥚',productName:'Ördek Yumurtası',xp:4,cost:300,minLevel:4},
+  {id:'bee',name:'Arı',emoji:'🐝',harvestTime:45,product:'bal',productEmoji:'🍯',productName:'Bal',xp:7,cost:400,minLevel:7},
+  {id:'goat',name:'Keçi',emoji:'🐐',harvestTime:90,product:'keci_sut',productEmoji:'🥛',productName:'Keçi Sütü',xp:11,cost:700,minLevel:9},
+];
+const ANIMAL_PRICES={yumurta:18,sut:35,yun:55,et:45,ordek_yumurta:22,bal:60,keci_sut:40};
+const BUILDINGS=[
+  {id:'barn',name:'Ahır',emoji:'🏚️',cost:500,minLevel:1,desc:'Hayvanlar buraya yerleştirilir. Ahır olmadan hayvan eklenemez!'},
+  {id:'bakery',name:'Fırın',emoji:'🏠',cost:2500,minLevel:8,desc:'Buğday ve meyvelerden ekmek/turta üretir. Tıkla → üret!'},
+  {id:'dairy',name:'Mandıra',emoji:'🏗️',cost:3500,minLevel:10,desc:'Sütten peynir ve tereyağı yapar. Tıkla → üret!'},
+  {id:'windmill',name:'Yel Değirmeni',emoji:'🌀',cost:5000,minLevel:12,desc:'XP bonusu sağlar.'},
+  {id:'market',name:'Köy Pazarı',emoji:'🏪',cost:8000,minLevel:15,desc:'Satış fiyatlarını %20 artırır.'},
+];
+const BAKERY_RECIPES=[
+  {id:'ekmek',name:'Ekmek',emoji:'🍞',ingredients:{wheat:4},result:{item:'ekmek',emoji:'🍞',name:'Ekmek'},sellPrice:180,craftTime:30,xp:15},
+  {id:'elma_turtasi',name:'Elma Turtası',emoji:'🥧',ingredients:{wheat:3,apple:2},result:{item:'elma_turtasi',emoji:'🥧',name:'Elma Turtası'},sellPrice:320,craftTime:60,xp:25},
+  {id:'cilek_turtasi',name:'Çilek Turtası',emoji:'🍰',ingredients:{wheat:3,strawberry:2},result:{item:'cilek_turtasi',emoji:'🍰',name:'Çilek Turtası'},sellPrice:280,craftTime:60,xp:22},
+  {id:'misir_ekmegi',name:'Mısır Ekmeği',emoji:'🌽',ingredients:{corn:3,wheat:1},result:{item:'misir_ekmegi',emoji:'🌽',name:'Mısır Ekmeği'},sellPrice:220,craftTime:45,xp:18},
+];
+const DAIRY_RECIPES=[
+  {id:'peynir',name:'Peynir',emoji:'🧀',ingredients:{sut:3},result:{item:'peynir',emoji:'🧀',name:'Peynir'},sellPrice:150,craftTime:60,xp:18},
+  {id:'tereyagi',name:'Tereyağı',emoji:'🧈',ingredients:{sut:5},result:{item:'tereyagi',emoji:'🧈',name:'Tereyağı'},sellPrice:230,craftTime:90,xp:25},
+  {id:'kefir',name:'Kefir',emoji:'🥛',ingredients:{keci_sut:3},result:{item:'kefir',emoji:'🥛',name:'Kefir'},sellPrice:180,craftTime:45,xp:20},
+  {id:'bal_pekmezi',name:'Bal Pekmezi',emoji:'🍯',ingredients:{bal:2,grape:2},result:{item:'bal_pekmezi',emoji:'🍯',name:'Bal Pekmezi'},sellPrice:350,craftTime:120,xp:35},
+];
+const TREES=[
+  {id:'apple',name:'Elma Ağacı',emoji:'🍎',harvestTime:90,product:'apple',productName:'Elma',xp:8,cost:300,minLevel:3,seasons:4},
+  {id:'peach',name:'Şeftali',emoji:'🍑',harvestTime:120,product:'peach',productName:'Şeftali',xp:11,cost:450,minLevel:5,seasons:3},
+  {id:'cherry',name:'Kiraz',emoji:'🍒',harvestTime:180,product:'cherry',productName:'Kiraz',xp:15,cost:700,minLevel:8,seasons:2},
+  {id:'lemon',name:'Limon',emoji:'🍋',harvestTime:60,product:'lemon',productName:'Limon',xp:6,cost:250,minLevel:4,seasons:5},
+  {id:'orange',name:'Portakal',emoji:'🍊',harvestTime:150,product:'orange',productName:'Portakal',xp:13,cost:600,minLevel:7,seasons:3},
+  {id:'olive',name:'Zeytin',emoji:'🫒',harvestTime:240,product:'olive',productName:'Zeytin',xp:22,cost:1200,minLevel:12,seasons:4},
+];
+const TREE_PRICES={apple:55,peach:75,cherry:110,lemon:42,orange:95,olive:160};
+const ACHIEVEMENTS=[
+  {id:'first_plant',name:'Toprağa İlk Adım',emoji:'🌱',desc:'İlk ekini büyüt.',check:g=>g.stats.planted>=1,target:1},
+  {id:'harvest_10',name:'Hasat Ustası',emoji:'🌾',desc:'10 kez hasat yap.',check:g=>g.stats.harvested>=10,target:10},
+  {id:'harvest_100',name:'Çiftçi Başı',emoji:'🏆',desc:'100 kez hasat yap.',check:g=>g.stats.harvested>=100,target:100},
+  {id:'coins_1000',name:'Coin Cüzdanı',emoji:'🪙',desc:'1.000 coin biriktir.',check:g=>g.totalEarned>=1000,target:1000},
+  {id:'coins_10000',name:'Altın Çiftçi',emoji:'💰',desc:'10.000 coin biriktir.',check:g=>g.totalEarned>=10000,target:10000},
+  {id:'level_5',name:'Tecrübeli',emoji:'⭐',desc:"Seviye 5'e ulaş.",check:g=>g.level>=5,target:5},
+  {id:'level_10',name:'Usta Çiftçi',emoji:'🌟',desc:"Seviye 10'a ulaş.",check:g=>g.level>=10,target:10},
+  {id:'animal_1',name:'Çiftlik Dostu',emoji:'🐄',desc:'İlk hayvanını al.',check:g=>g.stats.animals>=1,target:1},
+  {id:'build_1',name:'İnşaatçı',emoji:'🏚️',desc:'İlk binanı inşa et.',check:g=>g.stats.buildings>=1,target:1},
+  {id:'zone_2',name:'Genişlemeci',emoji:'📐',desc:'2. bölgeyi aç.',check:g=>g.unlockedZones>=2,target:2},
+  {id:'craft_1',name:'Zanaatkar',emoji:'🍞',desc:'İlk ürünü işle.',check:g=>g.stats.crafted>=1,target:1},
+];
+/* Level XP yarıya indirildi */
+const LEVEL_THRESHOLDS=[0,50,125,250,450,750,1200,1850,2750,4000,5750,8000,11000,15000,20000,26000,33500,42500,53000,65000];
+const ZONE_SIZE=6;
+const ZONE_COSTS=[0,2000,5000,10000];
+
+/* ===== STATE ===== */
+let G={
+  name:'Çiftçi',level:1,xp:0,coins:250,cash:5,totalEarned:0,
+  stats:{planted:0,harvested:0,animals:0,buildings:0,trees:0,crafted:0},
+  tiles:{},bag:{},processing:[],
+  selectedCrop:null,unlockedAchievements:new Set(),
+  unlockedZones:1,emergencyUsed:0,
+};
+let currentTool='hand',openPanelName=null,_panelExtra=null;
+let worldScale=1,worldX=0,worldY=0,isDragging=false,dragStartX,dragStartY,dragStartWX,dragStartWY;
+
+function tkey(c,r){return `${c},${r}`}
+function tcr(k){const[c,r]=k.split(',').map(Number);return{c,r}}
+function getZone(c,r){return(r<ZONE_SIZE?0:2)+(c<ZONE_SIZE?0:1)}
+function isZoneUnlocked(z){return z<G.unlockedZones}
+
+/* ===== INIT ===== */
+function startGame(){
+  const nm=document.getElementById('farmer-name-input').value.trim();
+  if(nm)G.name=nm;
+  document.getElementById('welcome-screen').style.display='none';
+  buildGrid();centerFarm();updateHUD();buildClouds();
+  setInterval(tickGame,2000);setInterval(renderMinimap,3000);
+  renderMinimap();decorateFarm();checkDailyBonus();
+  setTimeout(()=>toast(`🌾 Hoş geldin, ${G.name}! İlk bölgen hazır!`,'success'),800);
+}
+
+/* ===== GRID ===== */
+function buildGrid(){
+  const grid=document.getElementById('farm-grid');
+  const ground=document.getElementById('farm-ground');
+  const ts=58,pad=20,cols=12,rows=12;
+  grid.style.gridTemplateColumns=`repeat(12,${ts}px)`;
+  grid.style.gridTemplateRows=`repeat(12,${ts}px)`;
+  ground.style.width=`${12*ts+pad*2}px`;
+  ground.style.height=`${12*ts+pad*2+60}px`;
+  grid.innerHTML='';
+  document.querySelectorAll('.zone-locked-overlay').forEach(e=>e.remove());
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    const el=document.createElement('div');
+    el.className='tile tile-empty';el.id=`tile-${c}-${r}`;
+    el.dataset.col=c;el.dataset.row=r;
+    el.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();showCtxMenu(c,r,e)});
+    grid.appendChild(el);renderTile(c,r);
+  }
+  buildZoneOverlays(ts,pad);
+}
+
+function buildZoneOverlays(ts,pad){
+  const ground=document.getElementById('farm-ground');
+  document.querySelectorAll('.zone-locked-overlay').forEach(e=>e.remove());
+  const zPos=[{c:0,r:0},{c:ZONE_SIZE,r:0},{c:0,r:ZONE_SIZE},{c:ZONE_SIZE,r:ZONE_SIZE}];
+  const zLabels=['','2. Bölge','3. Bölge','4. Bölge'];
+  for(let z=1;z<4;z++){
+    if(isZoneUnlocked(z))continue;
+    const p=zPos[z];
+    const ov=document.createElement('div');
+    ov.className='zone-locked-overlay';ov.dataset.zone=z;
+    ov.style.left=(pad+p.c*ts)+'px';ov.style.top=(pad+p.r*ts)+'px';
+    ov.style.width=(ZONE_SIZE*ts)+'px';ov.style.height=(ZONE_SIZE*ts)+'px';
+    ov.innerHTML=`<div class="zone-lock-icon">🔒</div>
+      <div class="zone-lock-label">${zLabels[z]}</div>
+      <div class="zone-lock-price">🪙 ${ZONE_COSTS[z].toLocaleString('tr-TR')}</div>
+      <div class="zone-lock-label" style="font-size:9px;opacity:.8">Tıkla → Kilidi Aç</div>`;
+    ov.onclick=()=>unlockZone(z);
+    ground.appendChild(ov);
+  }
+}
+
+function unlockZone(z){
+  if(G.unlockedZones>z){toast('Bu bölge zaten açık!','warning');return}
+  if(G.unlockedZones<z){toast('Önce önceki bölgeyi aç!','warning');return}
+  if(G.coins<ZONE_COSTS[z]){toast(`Yeterli coin yok! ${ZONE_COSTS[z].toLocaleString('tr-TR')}🪙 gerekli.`,'error');return}
+  G.coins-=ZONE_COSTS[z];G.unlockedZones++;
+  updateHUD();buildZoneOverlays(58,20);
+  toast(`🎉 Bölge ${z+1} açıldı! Yeni alan kullanıma hazır!`,'success');
+  checkAchievements();
+}
+
+/* ===== TILE RENDER ===== */
+function renderTile(c,r){
+  const el=document.getElementById(`tile-${c}-${r}`);
+  if(!el)return;
+  const tile=G.tiles[tkey(c,r)];
+  el.className='tile';el.innerHTML='';el.style.animation='';
+  if(!tile){el.classList.add('tile-empty');return}
+  if(tile.type==='plowed'){el.classList.add('tile-plowed');return}
+  if(tile.type==='crop'){
+    const crop=CROPS.find(x=>x.id===tile.cropId);if(!crop)return;
+    const elapsed=(Date.now()-tile.plantedAt)/1000;
+    const pct=Math.min(elapsed/crop.growTime,1);
+    const withered=elapsed>=crop.growTime+crop.growTime*8;
+    const ready=elapsed>=crop.growTime;
+    if(withered)el.classList.add('tile-withered');
+    else if(ready)el.classList.add('tile-ready');
+    else el.classList.add('tile-crop');
+    let emoji=withered?'🥀':ready?crop.emoji:pct<.3?'🌱':pct<.6?'🌿':'🌾';
+    const ce=document.createElement('div');ce.className='crop-emoji';ce.textContent=emoji;
+    const sw=document.createElement('div');sw.className='crop-stage';
+    const sf=document.createElement('div');sf.className='crop-stage-fill';sf.style.width=(pct*100)+'%';
+    sw.appendChild(sf);el.appendChild(ce);el.appendChild(sw);
+    if(!ready&&!withered){
+      const te=document.createElement('div');te.className='crop-timer';
+      te.textContent=formatTime(crop.growTime-elapsed);el.appendChild(te);
+    }
+    return;
+  }
+  if(tile.type==='animal'){
+    el.classList.add('tile-animal');
+    const a=ANIMALS.find(x=>x.id===tile.animalId);if(!a)return;
+    const elapsed=(Date.now()-tile.lastHarvest)/1000,ready=elapsed>=a.harvestTime;
+    const ce=document.createElement('div');ce.className='crop-emoji';
+    ce.textContent=ready?`${a.emoji}✨`:a.emoji;el.appendChild(ce);
+    if(ready)el.style.animation='pulse-glow 2s ease-in-out infinite';
+    return;
+  }
+  if(tile.type==='building'){
+    el.classList.add('tile-building');
+    const b=BUILDINGS.find(x=>x.id===tile.buildingId);if(!b)return;
+    const ce=document.createElement('div');ce.className='crop-emoji';ce.style.fontSize='30px';ce.textContent=b.emoji;el.appendChild(ce);
+    if(tile.buildingId==='bakery'||tile.buildingId==='dairy'){
+      const proc=G.processing.find(p=>p.buildingTile===tkey(c,r));
+      if(proc){
+        const pw=document.createElement('div');pw.style.cssText='position:absolute;bottom:2px;left:0;right:0;height:3px;background:rgba(0,0,0,.3);z-index:2;';
+        const pf=document.createElement('div');
+        const pct=Math.min((Date.now()-proc.startTime)/(proc.craftTime*1000),1);
+        pf.style.cssText=`height:100%;width:${pct*100}%;background:linear-gradient(90deg,#42A5F5,#1565C0);border-radius:3px`;
+        pw.appendChild(pf);el.appendChild(pw);
+      }
+    }
+    return;
+  }
+  if(tile.type==='tree'){
+    el.classList.add('tile-tree');
+    const t=TREES.find(x=>x.id===tile.treeId);if(!t)return;
+    const elapsed=(Date.now()-tile.lastHarvest)/1000,ready=elapsed>=t.harvestTime;
+    const ce=document.createElement('div');ce.className='crop-emoji';
+    ce.textContent=ready?`${t.emoji}✨`:t.emoji;el.appendChild(ce);
+    if(ready)el.style.animation='pulse-glow 2s ease-in-out infinite';
+    return;
+  }
+}
+
+/* ===== TILE CLICK ===== */
+function onTileClick(c,r,e){
+  hideCtxMenu();
+  const k=tkey(c,r),zone=getZone(c,r);
+  if(!isZoneUnlocked(zone)){unlockZone(zone);return}
+
+  if(currentTool.startsWith('_placeAnimal_')){
+    const id=currentTool.replace('_placeAnimal_','');
+    if(G.tiles[k]){toast('Bu kare dolu!','warning');return}
+    if(!findNearbyBarn(c,r)){toast('🏚️ Ahır gerekli! Önce Ahır inşa et, sonra ahıra yakın bir kareye yerleştir.','warning');return}
+    G.tiles[k]={type:'animal',animalId:id,lastHarvest:Date.now()-999999};
+    G.stats.animals++;renderTile(c,r);setTool('hand');
+    const a=ANIMALS.find(x=>x.id===id);toast(`${a.emoji} ${a.name} ahıra yerleştirildi!`,'success');
+    checkAchievements();return;
+  }
+  if(currentTool.startsWith('_placeBuilding_')){
+    const id=currentTool.replace('_placeBuilding_','');
+    if(G.tiles[k]){toast('Bu kare dolu!','warning');return}
+    G.tiles[k]={type:'building',buildingId:id};G.stats.buildings++;
+    renderTile(c,r);setTool('hand');
+    const b=BUILDINGS.find(x=>x.id===id);toast(`${b.emoji} ${b.name} inşa edildi!`,'success');
+    checkAchievements();return;
+  }
+  if(currentTool.startsWith('_placeTree_')){
+    const id=currentTool.replace('_placeTree_','');
+    if(G.tiles[k]){toast('Bu kare dolu!','warning');return}
+    const t=TREES.find(x=>x.id===id);
+    G.tiles[k]={type:'tree',treeId:id,lastHarvest:Date.now()-999999,seasons:t.seasons};
+    G.stats.trees++;renderTile(c,r);setTool('hand');
+    toast(`${t.emoji} ${t.name} dikildi!`,'success');checkAchievements();return;
+  }
+  const tile=G.tiles[k];
+  if(currentTool==='hand'){
+    if(!tile)return;
+    if(tile.type==='crop')tryHarvest(c,r,e);
+    else if(tile.type==='animal')tryHarvestAnimal(c,r,e);
+    else if(tile.type==='tree')tryHarvestTree(c,r,e);
+    else if(tile.type==='building')onBuildingClick(c,r);
+    return;
+  }
+  if(currentTool==='plow'){
+    if(tile){toast('Bu kare dolu!','warning');return}
+    G.tiles[k]={type:'plowed'};renderTile(c,r);toast('Toprak sürüldü ⛏️');return;
+  }
+  if(currentTool==='seed'){
+    if(!G.selectedCrop){openPanel('seedSelect');return}
+    const crop=CROPS.find(x=>x.id===G.selectedCrop);if(!crop)return;
+    if(!tile||tile.type!=='plowed'){toast('Önce toprağı sür!','warning');return}
+    if(G.level<crop.minLevel){toast(`Seviye ${crop.minLevel} gerekli!`,'warning');return}
+    if(G.coins<crop.buyPrice){toast('Yeterli coin yok!','error');return}
+    G.coins-=crop.buyPrice;G.tiles[k]={type:'crop',cropId:crop.id,plantedAt:Date.now()};
+    G.stats.planted++;renderTile(c,r);updateHUD();
+    spawnSparkle(e.clientX,e.clientY,`-${crop.buyPrice}🪙`);
+    toast(`${crop.emoji} ${crop.name} ekildi!`);checkAchievements();return;
+  }
+  if(currentTool==='harvest'){
+    if(!tile)return;
+    if(tile.type==='crop')tryHarvest(c,r,e);
+    else if(tile.type==='animal')tryHarvestAnimal(c,r,e);
+    else if(tile.type==='tree')tryHarvestTree(c,r,e);
+    return;
+  }
+  if(currentTool==='sell'){
+    if(!tile)return;
+    if(tile.type==='crop'){
+      const crop=CROPS.find(x=>x.id===tile.cropId);
+      if(crop){const gain=Math.floor(crop.sellPrice*.3);G.coins+=gain;G.totalEarned+=gain;delete G.tiles[k];renderTile(c,r);updateHUD();spawnSparkle(e.clientX,e.clientY,`+${gain}🪙`);toast(`Zararına satıldı: +${gain}🪙 (%30)`,'warning');}
+    }
+    return;
+  }
+  if(currentTool==='remove'){
+    if(!tile)return;
+    if(tile.type==='plowed'){delete G.tiles[k];renderTile(c,r);toast('Toprak düzlendi.');}
+    else if(tile.type==='crop'){delete G.tiles[k];renderTile(c,r);toast('Ekin kaldırıldı.','warning');}
+    else if(tile.type==='animal'||tile.type==='building'||tile.type==='tree'){
+      if(confirm('Bu nesneyi kaldırmak istediğinize emin misiniz?')){
+        if(tile.type==='animal')G.stats.animals--;
+        if(tile.type==='building')G.stats.buildings--;
+        if(tile.type==='tree')G.stats.trees--;
+        delete G.tiles[k];renderTile(c,r);toast('Nesne kaldırıldı.','warning');
+      }
+    }
+    return;
+  }
+}
+
+function findNearbyBarn(c,r){
+  for(let dc=-2;dc<=2;dc++)for(let dr=-2;dr<=2;dr++){
+    if(!dc&&!dr)continue;
+    const t=G.tiles[tkey(c+dc,r+dr)];
+    if(t&&t.type==='building'&&t.buildingId==='barn')return true;
+  }
+  return false;
+}
+
+function onBuildingClick(c,r){
+  const tile=G.tiles[tkey(c,r)];if(!tile||tile.type!=='building')return;
+  if(tile.buildingId==='bakery')openPanel('bakery',{c,r});
+  else if(tile.buildingId==='dairy')openPanel('dairy',{c,r});
+  else if(tile.buildingId==='windmill')toast('🌀 Yel Değirmeni: XP bonusu aktif!','success');
+  else if(tile.buildingId==='market')toast('🏪 Köy Pazarı: Satış fiyatları %20 artırılmış!','success');
+  else if(tile.buildingId==='barn')toast('🏚️ Ahır: Yakınına hayvan yerleştir (2 kare mesafede).','success');
+}
+
+/* ===== ÇANTAYA EKLE ===== */
+function addToBag(id,emoji,name,qty,type){
+  if(!G.bag[id])G.bag[id]={emoji,name,qty:0,type};
+  G.bag[id].qty+=qty;
+}
+
+/* ===== HASAT — çantaya gider ===== */
+function tryHarvest(c,r,e){
+  const k=tkey(c,r),tile=G.tiles[k];
+  if(!tile||tile.type!=='crop')return;
+  const crop=CROPS.find(x=>x.id===tile.cropId);if(!crop)return;
+  const elapsed=(Date.now()-tile.plantedAt)/1000;
+  if(elapsed>=crop.growTime+crop.growTime*8){
+    delete G.tiles[k];renderTile(c,r);toast('Ekin soldu! 🥀 Kaybedildi.','error');return;
+  }
+  if(elapsed<crop.growTime){toast(`Henüz olmadı. ${formatTime(crop.growTime-elapsed)} kaldı.`,'warning');return}
+  addToBag(crop.id,crop.emoji,crop.name,1,'crop');
+  addXP(crop.xp);G.stats.harvested++;
+  delete G.tiles[k];renderTile(c,r);updateHUD();
+  const el=document.getElementById(`tile-${c}-${r}`);
+  const rect=el?el.getBoundingClientRect():{left:400,top:300};
+  spawnSparkle(rect.left+20,rect.top,crop.emoji);
+  spawnSparkle(rect.left+20,rect.top+20,`+${crop.xp}⭐`);
+  toast(`${crop.emoji} ${crop.name} çantaya eklendi! +${crop.xp}XP`,'success');
+  checkAchievements();
+}
+
+function tryHarvestAnimal(c,r,e){
+  const k=tkey(c,r),tile=G.tiles[k];
+  if(!tile||tile.type!=='animal')return;
+  const a=ANIMALS.find(x=>x.id===tile.animalId);if(!a)return;
+  const elapsed=(Date.now()-tile.lastHarvest)/1000;
+  if(elapsed<a.harvestTime){toast(`${a.name} henüz hazır değil. ${formatTime(a.harvestTime-elapsed)} kaldı.`,'warning');return}
+  addToBag(a.product,a.productEmoji,a.productName,1,'animal');
+  addXP(a.xp);tile.lastHarvest=Date.now();renderTile(c,r);updateHUD();
+  const el=document.getElementById(`tile-${c}-${r}`);
+  const rect=el?el.getBoundingClientRect():{left:400,top:300};
+  spawnSparkle(rect.left+20,rect.top,a.productEmoji);
+  toast(`${a.emoji} ${a.name} → ${a.productName} çantaya eklendi!`,'success');
+  checkAchievements();
+}
+
+function tryHarvestTree(c,r,e){
+  const k=tkey(c,r),tile=G.tiles[k];
+  if(!tile||tile.type!=='tree')return;
+  const t=TREES.find(x=>x.id===tile.treeId);if(!t)return;
+  const elapsed=(Date.now()-tile.lastHarvest)/1000;
+  if(elapsed<t.harvestTime){toast(`${t.name} hazır değil. ${formatTime(t.harvestTime-elapsed)} kaldı.`,'warning');return}
+  addToBag(t.product,t.emoji,t.productName,1,'tree');
+  addXP(t.xp);tile.lastHarvest=Date.now();tile.seasons--;
+  if(tile.seasons<=0){delete G.tiles[k];toast(`${t.emoji} ${t.name} mevsimi bitti.`,'warning');}
+  else{renderTile(c,r);toast(`${t.emoji} ${t.name} → ${t.productName} çantaya eklendi! (${tile.seasons} mevsim kaldı)`,'success');}
+  updateHUD();
+  const el=document.getElementById(`tile-${c}-${r}`);
+  const rect=el?el.getBoundingClientRect():{left:400,top:300};
+  spawnSparkle(rect.left+20,rect.top,t.emoji);checkAchievements();
+}
+
+/* ===== CONTEXT MENU ===== */
+function showCtxMenu(c,r,e){
+  const menu=document.getElementById('ctx-menu');
+  const k=tkey(c,r),tile=G.tiles[k],zone=getZone(c,r);
+  if(!isZoneUnlocked(zone)){menu.style.display='none';return}
+  let html='';
+  if(!tile)html+=ctxBtn('⛏️','Toprağı Sür',`ctxPlow(${c},${r})`);
+  else if(tile.type==='plowed'){
+    html+=ctxBtn('🌱','Ekin Ek',`openPanel('seedSelect')`);
+    html+=ctxDiv();html+=ctxBtn('🗑️','Düzle',`ctxRemove(${c},${r})`,'danger');
+  }else if(tile.type==='crop'){
+    const crop=CROPS.find(x=>x.id===tile.cropId);
+    const elapsed=(Date.now()-tile.plantedAt)/1000,ready=elapsed>=crop.growTime;
+    if(ready)html+=ctxBtn('🌾','Hasat Et (Çantaya)',`tryHarvest(${c},${r},{clientX:0,clientY:0});hideCtxMenu()`);
+    else html+=ctxBtn('💸',`Zararına Sat (+${Math.floor(crop.sellPrice*.3)}🪙)`,`ctxSell(${c},${r})`);
+    html+=ctxDiv();html+=ctxBtn('🗑️','Söküp At',`ctxRemove(${c},${r})`,'danger');
+  }else if(tile.type==='animal'){
+    html+=ctxBtn('🐾','Ürün Al (Çantaya)',`tryHarvestAnimal(${c},${r},{});hideCtxMenu()`);
+    html+=ctxDiv();html+=ctxBtn('🗑️','Kaldır',`ctxRemove(${c},${r})`,'danger');
+  }else if(tile.type==='tree'){
+    html+=ctxBtn('🍎','Meyve Top (Çantaya)',`tryHarvestTree(${c},${r},{});hideCtxMenu()`);
+    html+=ctxDiv();html+=ctxBtn('🪓','Ağacı Kes',`ctxRemove(${c},${r})`,'danger');
+  }else if(tile.type==='building'){
+    const b=BUILDINGS.find(x=>x.id===tile.buildingId);
+    html+=ctxBtn(b.emoji,`${b.name} Aç`,`onBuildingClick(${c},${r});hideCtxMenu()`);
+    html+=ctxDiv();html+=ctxBtn('🗑️','Yık',`ctxRemove(${c},${r})`,'danger');
+  }
+  menu.innerHTML=html;menu.style.display='block';
+  const vw=window.innerWidth,vh=window.innerHeight;
+  let x=e.clientX+4,y=e.clientY+4;
+  if(x+190>vw)x=vw-194;if(y+220>vh)y=vh-224;
+  menu.style.left=x+'px';menu.style.top=y+'px';e.stopPropagation();
+}
+function ctxBtn(icon,label,action,cls=''){return `<button class="ctx-btn ${cls}" onclick="${action};hideCtxMenu()"><span class="ctx-icon">${icon}</span><span>${label}</span></button>`}
+function ctxDiv(){return`<div class="ctx-divider"></div>`}
+function ctxPlow(c,r){const k=tkey(c,r);if(!G.tiles[k]){G.tiles[k]={type:'plowed'};renderTile(c,r);toast('Sürüldü ⛏️')}}
+function ctxRemove(c,r){const k=tkey(c,r);if(G.tiles[k]){const t=G.tiles[k];if(t.type==='animal')G.stats.animals--;if(t.type==='building')G.stats.buildings--;if(t.type==='tree')G.stats.trees--;delete G.tiles[k];renderTile(c,r)}}
+function ctxSell(c,r){const k=tkey(c,r),tile=G.tiles[k];if(tile&&tile.type==='crop'){const crop=CROPS.find(x=>x.id===tile.cropId);if(crop){const gain=Math.floor(crop.sellPrice*.3);G.coins+=gain;G.totalEarned+=gain;delete G.tiles[k];renderTile(c,r);updateHUD();toast(`Zararına satıldı: +${gain}🪙`,'warning')}}}
+function hideCtxMenu(){document.getElementById('ctx-menu').style.display='none'}
+
+/* ===== PROCESSING ===== */
+function startProcessing(recipe,buildingTile){
+  for(const[ing,qty]of Object.entries(recipe.ingredients)){
+    if(!G.bag[ing]||G.bag[ing].qty<qty){
+      const nm=getIngName(ing);toast(`Yeterli malzeme yok! ${nm} gerekli.`,'error');return;
+    }
+  }
+  for(const[ing,qty]of Object.entries(recipe.ingredients)){
+    G.bag[ing].qty-=qty;if(G.bag[ing].qty<=0)delete G.bag[ing];
+  }
+  G.processing.push({recipeId:recipe.id,buildingTile,startTime:Date.now(),craftTime:recipe.craftTime,result:recipe.result,sellPrice:recipe.sellPrice,xp:recipe.xp});
+  toast(`${recipe.emoji} ${recipe.name} yapılıyor… ${formatTime(recipe.craftTime)} sonra hazır.`,'success');
+  closePanel();
+}
+function tickProcessing(){
+  const done=[],remaining=[];
+  for(const proc of G.processing){
+    if((Date.now()-proc.startTime)/1000>=proc.craftTime)done.push(proc);
+    else remaining.push(proc);
+  }
+  G.processing=remaining;
+  for(const proc of done){
+    addToBag(proc.result.item,proc.result.emoji,proc.result.name,1,'crafted');
+    addXP(proc.xp);G.stats.crafted++;
+    toast(`✅ ${proc.result.emoji} ${proc.result.name} hazır! Çantaya eklendi.`,'success');
+    const{c,r}=tcr(proc.buildingTile);renderTile(c,r);checkAchievements();
+  }
+}
+function getIngName(id){
+  const c=CROPS.find(x=>x.id===id);if(c)return c.emoji+' '+c.name;
+  const a=ANIMALS.find(x=>x.product===id);if(a)return a.productEmoji+' '+a.productName;
+  const t=TREES.find(x=>x.product===id);if(t)return t.emoji+' '+t.productName;
+  return id;
+}
+
+/* ===== TICK ===== */
+function tickGame(){
+  for(const k in G.tiles){const{c,r}=tcr(k);renderTile(c,r)}
+  tickProcessing();renderMinimap();
+}
+
+/* ===== XP/LEVEL ===== */
+function addXP(amt){
+  G.xp+=amt;const nl=getLevelForXP(G.xp);
+  if(nl>G.level){G.level=nl;showLevelUp();checkAchievements()}
+  updateHUD();
+}
+function getLevelForXP(xp){
+  let lv=1;
+  for(let i=1;i<LEVEL_THRESHOLDS.length;i++){if(xp>=LEVEL_THRESHOLDS[i])lv=i+1;else break}
+  return Math.min(lv,LEVEL_THRESHOLDS.length);
+}
+function showLevelUp(){
+  const b=document.getElementById('level-up-banner');
+  b.textContent=`🎉 Seviye ${G.level}'e Yükseldin! 🎉`;b.style.display='block';
+  b.style.animation='none';setTimeout(()=>{b.style.animation='banner-in .4s cubic-bezier(.34,1.56,.64,1)'},10);
+  setTimeout(()=>{b.style.display='none'},3500);
+  toast(`🎉 Seviye ${G.level}! Yeni içerikler açıldı!`,'success');
+}
+
+/* ===== HUD ===== */
+function updateHUD(){
+  document.getElementById('hud-coins').textContent=G.coins.toLocaleString('tr-TR');
+  document.getElementById('hud-cash').textContent=G.cash;
+  document.getElementById('hud-level').textContent=`Seviye ${G.level}`;
+  document.getElementById('hud-farmer').textContent=G.name;
+  const cur=LEVEL_THRESHOLDS[G.level-1]||0;
+  const nxt=LEVEL_THRESHOLDS[G.level]||cur+50000;
+  const pct=((G.xp-cur)/(nxt-cur))*100;
+  document.getElementById('xp-bar').style.width=Math.min(pct,100)+'%';
+  document.getElementById('xp-label').textContent=`${(G.xp-cur).toLocaleString('tr-TR')}/${(nxt-cur).toLocaleString('tr-TR')} XP`;
+}
+
+/* ===== EMERGENCY ===== */
+function emergencyGold(){
+  if(G.coins>200){toast('Zaten yeterli altının var! (200+ 🪙)','warning');return}
+  G.emergencyUsed++;G.coins+=50;updateHUD();
+  toast(`🆘 Acil yardım! +50🪙 (${G.emergencyUsed}. kullanım)`,'success');
+}
+
+/* ===== ACHIEVEMENTS ===== */
+function checkAchievements(){
+  ACHIEVEMENTS.forEach(a=>{if(!G.unlockedAchievements.has(a.id)&&a.check(G)){G.unlockedAchievements.add(a.id);showAchievementPop(a)}});
+}
+function showAchievementPop(a){
+  const el=document.getElementById('achievement-pop');
+  el.innerHTML=`<div style="font-size:22px">${a.emoji} Başarım Açıldı!</div><div style="margin-top:4px;font-weight:900">${a.name}</div><div style="font-size:11px;color:#CE93D8;margin-top:2px">${a.desc}</div>`;
+  el.style.display='block';setTimeout(()=>{el.style.display='none'},3500);
+}
+
+/* ===== BAG PRICE ===== */
+function getBagItemPrice(id){
+  const crop=CROPS.find(x=>x.id===id);if(crop)return crop.sellPrice;
+  if(ANIMAL_PRICES[id])return ANIMAL_PRICES[id];
+  if(TREE_PRICES[id])return TREE_PRICES[id];
+  const recs=[...BAKERY_RECIPES,...DAIRY_RECIPES];
+  const rec=recs.find(r=>r.result.item===id);if(rec)return rec.sellPrice;
+  return 10;
+}
+
+/* ===== PANELS ===== */
+function openPanel(name,extra){
+  _panelExtra=extra||null;openPanelName=name;
+  document.getElementById('panel-overlay').style.display='flex';
+  const title=document.getElementById('panel-title');
+  const body=document.getElementById('panel-body');
+  if(name==='shop'){title.textContent='🛒 Market';body.innerHTML=buildShopPanel();}
+  else if(name==='seedSelect'){title.textContent='🌱 Tohum Seç';body.innerHTML=buildSeedSelectPanel();}
+  else if(name==='bag'){title.textContent='🎒 Çantam';body.innerHTML=buildBagPanel();}
+  else if(name==='achievements'){title.textContent='🏆 Başarımlar';body.innerHTML=buildAchievementsPanel();}
+  else if(name==='animals'){title.textContent='🐄 Hayvan Market';body.innerHTML=buildAnimalsPanel();}
+  else if(name==='buildings'){title.textContent='🏚️ Binalar';body.innerHTML=buildBuildingsPanel();}
+  else if(name==='trees'){title.textContent='🌳 Meyve Ağaçları';body.innerHTML=buildTreesPanel();}
+  else if(name==='expand'){title.textContent='🗺️ Bölgeleri Aç';body.innerHTML=buildExpandPanel();}
+  else if(name==='help'){title.textContent='❓ Nasıl Oynanır?';body.innerHTML=buildHelpPanel();}
+  else if(name==='bakery'){title.textContent='🏠 Fırın – Üretim';body.innerHTML=buildCraftPanel(BAKERY_RECIPES,_panelExtra,'🔥 Yap!');}
+  else if(name==='dairy'){title.textContent='🏗️ Mandıra – Üretim';body.innerHTML=buildCraftPanel(DAIRY_RECIPES,_panelExtra,'🥛 Üret!');}
+}
+function closePanel(){document.getElementById('panel-overlay').style.display='none';openPanelName=null}
+function closePanelOnOverlay(e){if(e.target===document.getElementById('panel-overlay'))closePanel()}
+
+
+function buildShopPanel(){
+  return '<div class="shop-tabs">'
+    +'<div class="shop-tab active" onclick="switchShopTab(this,\'seeds\')">🌱 Tohumlar</div>'
+    +'<div class="shop-tab" onclick="openPanel(\'expand\')">🗺️ Bölgeler</div>'
+    +'</div><div id="shop-content">'+buildSeedShop()+'</div>';
+}
+function switchShopTab(el,tab){
+  document.querySelectorAll('.shop-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('shop-content').innerHTML=buildSeedShop();
+}
+function buildSeedShop(){
+  let html='<div class="shop-grid">';
+  CROPS.forEach(function(crop){
+    var locked=G.level<crop.minLevel;
+    var onclick=locked?'':('buyCrop(\''+crop.id+'\')');
+    var badge=crop.minLevel>1?('<div class="item-lvl-badge">Sv.'+crop.minLevel+'</div>'):'';
+    html+='<div class="shop-item '+(locked?'locked':'')+'" '+(onclick?'onclick="'+onclick+'"':'')+'>'+badge
+      +'<span class="item-emoji">'+crop.emoji+'</span>'
+      +'<div class="item-name">'+crop.name+'</div>'
+      +'<div class="item-time">⏱ '+formatTime(crop.growTime)+'</div>'
+      +'<div class="item-price">🪙 '+crop.buyPrice+'</div>'
+      +'<div class="item-xp">+'+crop.xp+' XP | Satış: '+crop.sellPrice+'🪙</div>'
+      +'</div>';
+  });
+  return html+'</div>';
+}
+function buildSeedSelectPanel(){
+  var html='<p style="margin-bottom:12px;color:#555;font-size:13px">Tohum seç → sürülmüş toprağa tıkla.</p><div class="shop-grid">';
+  CROPS.forEach(function(crop){
+    var locked=G.level<crop.minLevel,cant=G.coins<crop.buyPrice;
+    var oc;
+    if(locked) oc='toast(\'Seviye '+crop.minLevel+' gerekli!\',\'warning\')';
+    else if(cant) oc='toast(\'Yeterli coin yok!\',\'error\')';
+    else oc='selectCrop(\''+crop.id+'\')';
+    var sel=G.selectedCrop===crop.id?'selected':'';
+    var badge=crop.minLevel>1?('<div class="item-lvl-badge">Sv.'+crop.minLevel+'</div>'):'';
+    html+='<div class="shop-item '+((locked||cant)?'locked':'')+' '+sel+'" onclick="'+oc+'">'+badge
+      +'<span class="item-emoji">'+crop.emoji+'</span>'
+      +'<div class="item-name">'+crop.name+'</div>'
+      +'<div class="item-time">⏱ '+formatTime(crop.growTime)+'</div>'
+      +'<div class="item-price">🪙 '+crop.buyPrice+'</div>'
+      +'<div class="item-xp">+'+crop.xp+' XP</div>'
+      +'</div>';
+  });
+  return html+'</div>';
+}
+function selectCrop(id){
+  G.selectedCrop=id;setTool('seed');closePanel();
+  var crop=CROPS.find(x=>x.id===id);
+  toast(crop.emoji+' '+crop.name+' seçildi. Sürülmüş toprağa tıkla!');
+  var sb=document.getElementById('tool-seed');
+  if(sb)sb.querySelector('span:first-child').textContent=crop.emoji;
+}
+function buyCrop(id){selectCrop(id)}
+
+function buildAnimalsPanel(){
+  var html='<div class="hint-box"><div class="hint-title">🏚️ Ahır Gerekli!</div>'
+    +'Hayvan yerleştirmek için önce <b>Ahır</b> inşa et. Hayvanlar ahıra 2 kare mesafedeki boş alanlara konulur. Hayvan ürünleri <b>çantana</b> gider.</div>'
+    +'<div class="shop-grid">';
+  ANIMALS.forEach(function(a){
+    var locked=G.level<a.minLevel;
+    var oc=locked?('toast(\'Seviye '+a.minLevel+' gerekli!\',\'warning\')'):'buyAnimal(\''+a.id+'\')';
+    var badge=a.minLevel>1?('<div class="item-lvl-badge">Sv.'+a.minLevel+'</div>'):'';
+    html+='<div class="shop-item '+(locked?'locked':'')+'" onclick="'+oc+'">'+badge
+      +'<span class="item-emoji">'+a.emoji+'</span>'
+      +'<div class="item-name">'+a.name+'</div>'
+      +'<div class="item-time">⏱ '+formatTime(a.harvestTime)+'</div>'
+      +'<div class="item-price">🪙 '+a.cost+'</div>'
+      +'<div class="item-xp">+'+a.xp+' XP | '+a.productEmoji+' '+a.productName+'</div>'
+      +'</div>';
+  });
+  return html+'</div>';
+}
+function buyAnimal(id){
+  var a=ANIMALS.find(x=>x.id===id);
+  if(G.coins<a.cost){toast('Yeterli coin yok!','error');return}
+  G.coins-=a.cost;updateHUD();closePanel();
+  toast(a.emoji+' '+a.name+' satın alındı! Ahıra yakın boş kareye tıkla.','success');
+  currentTool='_placeAnimal_'+id;
+}
+
+function buildBuildingsPanel(){
+  var html='<div class="hint-box"><div class="hint-title">🏗️ Binalar Hakkında</div>'
+    +'<b>Ahır:</b> Hayvan için zorunlu.<br>'
+    +'<b>Fırın:</b> Tıkla → ekmek & turta üret. Çok karlı!<br>'
+    +'<b>Mandıra:</b> Tıkla → sütten peynir/tereyağı.<br>'
+    +'<b>Köy Pazarı:</b> Satışa +%20 bonus.</div>'
+    +'<div class="shop-grid">';
+  BUILDINGS.forEach(function(b){
+    var locked=G.level<b.minLevel;
+    var oc=locked?('toast(\'Seviye '+b.minLevel+' gerekli!\',\'warning\')'):'buyBuilding(\''+b.id+'\')';
+    var badge=b.minLevel>1?('<div class="item-lvl-badge">Sv.'+b.minLevel+'</div>'):'';
+    html+='<div class="shop-item '+(locked?'locked':'')+'" onclick="'+oc+'">'+badge
+      +'<span class="item-emoji" style="font-size:36px">'+b.emoji+'</span>'
+      +'<div class="item-name">'+b.name+'</div>'
+      +'<div class="item-time" style="font-size:10px">'+b.desc+'</div>'
+      +'<div class="item-price">🪙 '+b.cost+'</div>'
+      +'</div>';
+  });
+  return html+'</div>';
+}
+function buyBuilding(id){
+  var b=BUILDINGS.find(x=>x.id===id);
+  if(G.coins<b.cost){toast('Yeterli coin yok!','error');return}
+  G.coins-=b.cost;updateHUD();closePanel();
+  toast(b.emoji+' '+b.name+' satın alındı! Boş kareye tıkla.','success');
+  currentTool='_placeBuilding_'+id;
+}
+
+function buildTreesPanel(){
+  var html='<div class="hint-box"><div class="hint-title">🌳 Meyve Ağaçları</div>'
+    +'Ağaçlar belirli sayıda mevsim meyve verir. Meyveler çantana gider. Fırında turta yap!</div>'
+    +'<div class="shop-grid">';
+  TREES.forEach(function(t){
+    var locked=G.level<t.minLevel;
+    var oc=locked?('toast(\'Seviye '+t.minLevel+' gerekli!\',\'warning\')'):'buyTree(\''+t.id+'\')';
+    var badge=t.minLevel>1?('<div class="item-lvl-badge">Sv.'+t.minLevel+'</div>'):'';
+    html+='<div class="shop-item '+(locked?'locked':'')+'" onclick="'+oc+'">'+badge
+      +'<span class="item-emoji">'+t.emoji+'</span>'
+      +'<div class="item-name">'+t.name+'</div>'
+      +'<div class="item-time">⏱ '+formatTime(t.harvestTime)+' | '+t.seasons+'x</div>'
+      +'<div class="item-price">🪙 '+t.cost+'</div>'
+      +'<div class="item-xp">+'+t.xp+' XP | '+TREE_PRICES[t.product]+'🪙/adet</div>'
+      +'</div>';
+  });
+  return html+'</div>';
+}
+function buyTree(id){
+  var t=TREES.find(x=>x.id===id);
+  if(G.coins<t.cost){toast('Yeterli coin yok!','error');return}
+  G.coins-=t.cost;updateHUD();closePanel();
+  toast(t.emoji+' '+t.name+' satın alındı! Boş kareye tıkla.','success');
+  currentTool='_placeTree_'+id;
+}
+
+function buildBagPanel(){
+  var items=Object.entries(G.bag);
+  var total=items.reduce(function(s,e){return s+getBagItemPrice(e[0])*e[1].qty},0);
+  var hasMarket=Object.values(G.tiles).some(t=>t.type==='building'&&t.buildingId==='market');
+  var html='<div class="hint-box"><div class="hint-title">🎒 Çanta Nasıl Kullanılır?</div>'
+    +'Tüm hasat ettiğin ürünler burada. <b>Sat</b> → altın kazan. Ya da <b>Fırın/Mandıra</b>\'ya tıkla → ürünleri işle → çok daha karlı!'
+    +(hasMarket?' 🏪 Köy Pazarı aktif: +%20 bonus!':'')+'</div>';
+  if(items.length===0) return html+'<div style="text-align:center;padding:30px;color:#888;font-size:14px">🎒 Çantan boş!<br>Ürünleri hasat et, çantana dolsun.</div>';
+  html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+    +'<div style="font-size:13px;color:#555">'+items.length+' ürün · Değer: <b style="color:#F57F17">'+total+'🪙</b></div>'
+    +'<button class="bag-sell-btn sell-all" onclick="sellAllBag()" style="width:auto;padding:6px 14px;margin-top:0">💰 Hepsini Sat</button>'
+    +'</div><div class="bag-grid">';
+  items.forEach(function(e){
+    var id=e[0],item=e[1];
+    var price=getBagItemPrice(id),tot=price*item.qty;
+    html+='<div class="bag-item">'
+      +'<div class="inv-emoji">'+item.emoji+'</div>'
+      +'<div class="inv-name">'+item.name+'</div>'
+      +'<div class="inv-qty">x'+item.qty+'</div>'
+      +'<div class="inv-sell-price">🪙 '+price+'/adet</div>'
+      +'<button class="bag-sell-btn" onclick="sellBagItem(\''+id+'\',1)">Sat 1 (+'+price+'🪙)</button>'
+      +(item.qty>1?'<button class="bag-sell-btn sell-all" onclick="sellBagItem(\''+id+'\','+item.qty+')" style="margin-top:3px">Tümünü (+'+tot+'🪙)</button>':'')
+      +'</div>';
+  });
+  html+='</div>';
+  if(G.processing.length>0){
+    html+='<div class="section-title" style="margin-top:16px">⚙️ İşleniyor</div>';
+    G.processing.forEach(function(proc){
+      var el=(Date.now()-proc.startTime)/1000,pct=Math.min(el/proc.craftTime,1);
+      html+='<div style="background:#E3F2FD;border:1.5px solid #90CAF9;border-radius:10px;padding:10px;margin-bottom:8px">'
+        +'<b>'+proc.result.emoji+' '+proc.result.name+'</b> — '+formatTime(Math.max(0,proc.craftTime-el))+' kaldı'
+        +'<div class="processing-bar-wrap"><div class="processing-bar-fill" style="width:'+(pct*100)+'%"></div></div>'
+        +'</div>';
+    });
+  }
+  return html;
+}
+function sellBagItem(id,qty){
+  var item=G.bag[id];if(!item||item.qty<qty){toast('Yeterli ürün yok!','error');return}
+  var price=getBagItemPrice(id);
+  var hasMarket=Object.values(G.tiles).some(t=>t.type==='building'&&t.buildingId==='market');
+  var gain=price*qty;if(hasMarket)gain=Math.floor(gain*1.2);
+  G.coins+=gain;G.totalEarned+=gain;item.qty-=qty;if(item.qty<=0)delete G.bag[id];
+  updateHUD();toast(item.emoji+' '+qty+'x '+item.name+' satıldı! +'+gain+'🪙'+(hasMarket?' (Pazar +%20)':''),'success');
+  openPanel('bag');checkAchievements();
+}
+function sellAllBag(){
+  var items=Object.entries(G.bag);if(!items.length){toast('Çanta boş!','warning');return}
+  var hasMarket=Object.values(G.tiles).some(t=>t.type==='building'&&t.buildingId==='market');
+  var total=items.reduce(function(s,e){return s+getBagItemPrice(e[0])*e[1].qty},0);
+  if(hasMarket)total=Math.floor(total*1.2);
+  G.bag={};G.coins+=total;G.totalEarned+=total;updateHUD();
+  toast('🎉 Tüm çanta satıldı! +'+total+'🪙'+(hasMarket?' (Pazar +%20)':''),'success');
+  openPanel('bag');checkAchievements();
+}
+
+function buildCraftPanel(recipes,extra,btnLabel){
+  var buildingTile=extra?tkey(extra.c,extra.r):null;
+  var isB=recipes===BAKERY_RECIPES;
+  var html='<div class="hint-box"><div class="hint-title">'+(isB?'🏠 Fırın':'🏗️ Mandıra')+' Nasıl Çalışır?</div>'
+    +(isB?'Çantandaki buğday ve meyveleri lezzetli ürünlere dönüştür.':'Çantandaki sütleri işleyerek süt ürünleri üret.')
+    +' Üretim süresi bitince ürün otomatik çantana eklenir. İşlenmiş ürünler çok daha değerli!</div>';
+  recipes.forEach(function(r){
+    var canMake=Object.entries(r.ingredients).every(function(e){return G.bag[e[0]]&&G.bag[e[0]].qty>=e[1]});
+    var ingHtml=Object.entries(r.ingredients).map(function(e){
+      var have=G.bag[e[0]]?G.bag[e[0]].qty:0,ok=have>=e[1];
+      return '<div class="craft-ing '+(ok?'':'missing')+'">'+getIngName(e[0])+' x'+e[1]+' <span style="opacity:.6">('+have+')</span></div>';
+    }).join('');
+    var rname=isB?'BAKERY_RECIPES':'DAIRY_RECIPES';
+    html+='<div class="craft-item">'
+      +'<div class="craft-header"><span class="craft-emoji">'+r.emoji+'</span>'
+      +'<div><div class="craft-name">'+r.name+'</div><div class="craft-desc">⏱ '+formatTime(r.craftTime)+' | +'+r.xp+' XP</div></div></div>'
+      +'<div class="craft-ingredients">'+ingHtml+'</div>'
+      +'<div class="craft-result">→ '+r.result.emoji+' '+r.result.name+' | Satış: '+r.sellPrice+'🪙</div>'
+      +'<button class="craft-btn" '+(canMake&&buildingTile?'':'disabled')+' onclick="startProcessing('+rname+'.find(x=>x.id===\''+r.id+'\'),\''+buildingTile+'\')">'
+      +(canMake?btnLabel:'❌ Malzeme Yetersiz')
+      +'</button></div>';
+  });
+  return html;
+}
+
+function buildExpandPanel(){
+  var labels=['1. Bölge (Sol-Üst)','2. Bölge (Sağ-Üst)','3. Bölge (Sol-Alt)','4. Bölge (Sağ-Alt)'];
+  var html='<div class="hint-box"><div class="hint-title">🗺️ Çiftlik Bölgeleri</div>Çiftliğin 4 adet 6×6 bölgeden oluşur. İlk bölge açık, diğerlerini altınla aç!</div>';
+  for(var z=0;z<4;z++){
+    var un=z<G.unlockedZones,cost=ZONE_COSTS[z];
+    var isNext=!un&&z===G.unlockedZones,canBuy=isNext&&G.coins>=cost;
+    var btn=un?'<span style="color:#4CAF50;font-weight:900">✅ Açık</span>'
+      :isNext?('<button class="btn-primary" '+(canBuy?'':'disabled style="opacity:.5"')+' onclick="unlockZone('+z+');closePanel()">🔓 Aç</button>')
+      :'<span style="color:#CCC;font-size:12px">Önce öncekini aç</span>';
+    html+='<div style="background:'+(un?'#E8F5E9':isNext?'#FFF8E1':'#F5F5F5')+';border:2px solid '+(un?'#4CAF50':isNext?'#F9A825':'#DDD')+';border-radius:12px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:14px">'
+      +'<span style="font-size:32px">'+(un?'✅':'🔒')+'</span>'
+      +'<div style="flex:1"><div style="font-weight:900;font-size:14px">'+labels[z]+' (6×6)</div>'
+      +'<div style="font-size:12px;color:#777;margin-top:2px">'+(un?'Kullanıma açık':cost===0?'Başlangıç':'🪙 '+cost.toLocaleString('tr-TR'))+'</div></div>'
+      +btn+'</div>';
+  }
+  return html;
+}
+
+function buildAchievementsPanel(){
+  var html='<div class="ach-list">';
+  ACHIEVEMENTS.forEach(function(a){
+    var un=G.unlockedAchievements.has(a.id),cur=0,prog='';
+    if(a.target){
+      if(a.id.startsWith('harvest'))cur=G.stats.harvested;
+      else if(a.id.startsWith('coins'))cur=G.totalEarned;
+      else if(a.id.startsWith('level'))cur=G.level;
+      else if(a.id.startsWith('animal'))cur=G.stats.animals;
+      else if(a.id.startsWith('build'))cur=G.stats.buildings;
+      else if(a.id.startsWith('zone'))cur=G.unlockedZones;
+      else if(a.id.startsWith('craft'))cur=G.stats.crafted;
+      else cur=un?a.target:0;
+      prog='<div class="ach-prog">📊 '+Math.min(cur,a.target)+' / '+a.target+'</div>';
+    }
+    html+='<div class="ach-item '+(un?'unlocked':'')+'">'
+      +'<div class="ach-icon" style="'+(un?'':'filter:grayscale(1);opacity:.5')+'">'+a.emoji+'</div>'
+      +'<div class="ach-info"><div class="ach-name">'+a.name+'</div><div class="ach-desc">'+a.desc+'</div>'+prog+'</div>'
+      +(un?'<span class="ach-badge">✅ Açık</span>':'<span class="ach-badge" style="background:#CCC;color:#666">🔒</span>')
+      +'</div>';
+  });
+  return html+'</div>';
+}
+
+function buildHelpPanel(){
+  var tips=[
+    ['👆 El','Olgunlaşmış ekine/hayvana/ağaca tıkla → ürün çantaya gider.'],
+    ['⛏️ Sür','Boş toprağa tıkla → ekim için hazırla.'],
+    ['🌱 Ek','Tohum seç → sürülmüş toprağa tıkla → ekin büyür!'],
+    ['🌾 Biç','Olgunlaşmış ekine tıkla → çantaya ekle + XP kazan.'],
+    ['💸 Zararına Sat','Olgunlaşmamış ekini %30 fiyata sat (zarar!).'],
+    ['🗑️ Kaldır','Herhangi bir nesneyi kaldır.'],
+    ['🔒 Bölgeler','Çiftlik 4 adet 6×6 bölge. Kilitleri altınla aç.'],
+    ['🏚️ Ahır','Hayvan için zorunlu! Ahıra 2 kare yakına hayvan koy.'],
+    ['🏠 Fırın','Tıkla → buğday+meyve ile ekmek/turta üret. Çok karlı!'],
+    ['🏗️ Mandıra','Tıkla → sütten peynir/tereyağı üret.'],
+  ];
+  var html='<div class="hint-box" style="background:linear-gradient(135deg,#FFF9C4,#FFF8E1);border-color:#F9A825">'
+    +'<div class="hint-title" style="color:#F57F17">💡 Genel İpuçları</div>'
+    +'• Ürünleri hasat et → çantaya gelir → sat ya da işle!<br>'
+    +'• Fırın / Mandıra binasına tıkla → çok daha karlı ürünler yap.<br>'
+    +'• Ahır inşa et → yakınına hayvan yerleştir → ürünlerini topla.<br>'
+    +'• Kilitli bölgeleri aç → daha fazla alan → daha fazla kazanç.<br>'
+    +'• Ekinler büyüme süresinin 8 katı kadar tarlada kalabilir.<br>'
+    +'• 🆘 Acil buton: 200 altın altına düşersen +50 altın al.</div>'
+    +'<div style="display:flex;flex-direction:column;gap:10px">';
+  tips.forEach(function(t){
+    html+='<div style="display:flex;gap:10px;background:#F9F9F9;padding:9px 12px;border-radius:10px;border:1.5px solid #EEE">'
+      +'<span style="font-weight:900;color:#2E7D32;white-space:nowrap;min-width:90px">'+t[0]+'</span>'
+      +'<span style="font-size:12px;color:#555">'+t[1]+'</span></div>';
+  });
+  return html+'</div></div>';
+}
+
+/* ===== TOOLS ===== */
+function setTool(name){
+  currentTool=name;
+  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+  const map={hand:'tool-hand',plow:'tool-plow',seed:'tool-seed',harvest:'tool-harvest',sell:'tool-sell',remove:'tool-remove'};
+  if(map[name])document.getElementById(map[name])?.classList.add('active');
+  const msgs={hand:'El: ürün topla (çantaya)',plow:'Sürme: toprağı sür',seed:'Tohum: sürülmüş toprağa ek',harvest:'Hasat: çantaya ekle',sell:'Zararına Sat: %30 fiyata erken sat!',remove:'Kaldır: nesne sil'};
+  if(msgs[name])toast(msgs[name]);
+}
+
+/* ===== CAMERA ===== */
+const world=document.getElementById('game-world');
+const container=document.getElementById('world-container');
+function applyTransform(){container.style.transform=`translate(${worldX}px,${worldY}px) scale(${worldScale})`}
+function centerFarm(){
+  const ts=58,fw=12*ts+40,fh=12*ts+80,ww=world.clientWidth,wh=world.clientHeight;
+  worldScale=Math.min(ww/(fw+40),wh/(fh+40),1);
+  worldX=(ww-fw*worldScale)/2;worldY=(wh-fh*worldScale)/2;applyTransform();
+}
+function zoomIn(){worldScale=Math.min(worldScale*1.25,2.5);applyTransform()}
+function zoomOut(){worldScale=Math.max(worldScale*.8,.3);applyTransform()}
+world.addEventListener('mousedown',e=>{
+  if(e.button!==0)return;
+  if(e.target.classList.contains('tile')||e.target.closest('.tile'))return;
+  if(e.target.closest('.zone-locked-overlay'))return;
+  isDragging=true;dragStartX=e.clientX;dragStartY=e.clientY;dragStartWX=worldX;dragStartWY=worldY;world.classList.add('dragging');
+});
+window.addEventListener('mousemove',e=>{if(!isDragging)return;worldX=dragStartWX+(e.clientX-dragStartX);worldY=dragStartWY+(e.clientY-dragStartY);applyTransform()});
+window.addEventListener('mouseup',()=>{isDragging=false;world.classList.remove('dragging')});
+world.addEventListener('wheel',e=>{e.preventDefault();worldScale=Math.max(.3,Math.min(2.5,worldScale*(e.deltaY<0?1.1:.9)));applyTransform()},{passive:false});
+let tSX,tSY,tSWX,tSWY,pinchDist=null;
+world.addEventListener('touchstart',e=>{
+  if(e.touches.length===1){tSX=e.touches[0].clientX;tSY=e.touches[0].clientY;tSWX=worldX;tSWY=worldY}
+  else if(e.touches.length===2)pinchDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+},{passive:true});
+world.addEventListener('touchmove',e=>{
+  if(e.touches.length===1&&tSX!==undefined){worldX=tSWX+(e.touches[0].clientX-tSX);worldY=tSWY+(e.touches[0].clientY-tSY);applyTransform()}
+  else if(e.touches.length===2&&pinchDist){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);worldScale=Math.max(.3,Math.min(2.5,worldScale*(d/pinchDist)));pinchDist=d;applyTransform()}
+  e.preventDefault();
+},{passive:false});
+world.addEventListener('touchend',()=>{pinchDist=null});
+
+/* ===== MINIMAP ===== */
+function renderMinimap(){
+  const canvas=document.getElementById('minimap-canvas');if(!canvas)return;
+  const ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height,tw=W/12,th=H/12;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#4A8A30';ctx.fillRect(0,0,W,H);
+  for(let z=1;z<4;z++){
+    if(!isZoneUnlocked(z)){const zc=(z%2)*ZONE_SIZE,zr=Math.floor(z/2)*ZONE_SIZE;ctx.fillStyle='rgba(0,0,0,.4)';ctx.fillRect(zc*tw,zr*th,ZONE_SIZE*tw,ZONE_SIZE*th)}
+  }
+  for(let r=0;r<12;r++)for(let c=0;c<12;c++){
+    const tile=G.tiles[tkey(c,r)];if(!tile)continue;
+    let color='#fff';
+    if(tile.type==='plowed')color='#8B5E3C';
+    else if(tile.type==='crop'){const el=(Date.now()-tile.plantedAt)/1000,crop=CROPS.find(x=>x.id===tile.cropId);color=el>=crop?.growTime?'#F9A825':'#69F0AE'}
+    else if(tile.type==='animal')color='#FF8F00';
+    else if(tile.type==='building')color='#42A5F5';
+    else if(tile.type==='tree')color='#66BB6A';
+    ctx.fillStyle=color;ctx.fillRect(c*tw+.5,r*th+.5,tw-1,th-1);
+  }
+}
+document.getElementById('minimap').addEventListener('click',centerFarm);
+
+/* ===== SPARKLE ===== */
+function spawnSparkle(x,y,text){const el=document.createElement('div');el.className='sparkle';el.textContent=text;el.style.left=x+'px';el.style.top=y+'px';document.body.appendChild(el);setTimeout(()=>el.remove(),900)}
+
+/* ===== TOAST — sağ üst, kısa ===== */
+function toast(msg,type=''){
+  const area=document.getElementById('toast-area');
+  const el=document.createElement('div');el.className=`toast ${type}`;el.textContent=msg;
+  area.appendChild(el);
+  setTimeout(()=>{el.style.animation='toast-out .25s ease forwards';setTimeout(()=>el.remove(),250)},1800);
+}
+
+/* ===== CLOUDS ===== */
+function buildClouds(){
+  const bg=document.getElementById('sky-bg');
+  for(let i=0;i<7;i++){
+    const el=document.createElement('div');el.className='cloud';
+    const w=80+Math.random()*120,h=30+Math.random()*30;
+    el.style.cssText=`width:${w}px;height:${h}px;top:${10+Math.random()*35}%;left:-200px;animation-duration:${40+Math.random()*50}s;animation-delay:${-Math.random()*50}s;opacity:${.6+Math.random()*.4}`;
+    bg.appendChild(el);
+  }
+}
+
+/* ===== UTIL ===== */
+function formatTime(secs){
+  secs=Math.max(0,Math.ceil(secs));
+  if(secs<60)return secs+'s';
+  if(secs<3600)return Math.floor(secs/60)+'d '+(secs%60)+'s';
+  if(secs<86400)return Math.floor(secs/3600)+'sa '+Math.floor((secs%3600)/60)+'d';
+  return Math.floor(secs/86400)+'gün';
+}
+
+/* ===== SAVE/LOAD ===== */
+function saveGame(){
+  try{sessionStorage.setItem('fv2_save',JSON.stringify({name:G.name,level:G.level,xp:G.xp,coins:G.coins,cash:G.cash,totalEarned:G.totalEarned,stats:G.stats,tiles:G.tiles,bag:G.bag,processing:G.processing,selectedCrop:G.selectedCrop,unlockedAchievements:[...G.unlockedAchievements],unlockedZones:G.unlockedZones,emergencyUsed:G.emergencyUsed}))}catch(e){}
+}
+function loadGame(){
+  try{const raw=sessionStorage.getItem('fv2_save');if(!raw)return false;const d=JSON.parse(raw);Object.assign(G,d);G.unlockedAchievements=new Set(d.unlockedAchievements||[]);G.bag=d.bag||{};G.processing=d.processing||[];G.unlockedZones=d.unlockedZones||1;G.emergencyUsed=d.emergencyUsed||0;return true}catch(e){return false}
+}
+setInterval(saveGame,10000);
+window.addEventListener('load',()=>{if(loadGame()){const ni=document.getElementById('farmer-name-input');if(ni&&G.name!=='Çiftçi')ni.value=G.name}});
+
+/* ===== DAILY BONUS ===== */
+function checkDailyBonus(){
+  const key='fv2_daily',last=sessionStorage.getItem(key),today=new Date().toDateString();
+  if(last!==today){sessionStorage.setItem(key,today);setTimeout(()=>{G.coins+=500;G.cash+=1;updateHUD();toast('🎁 Günlük bonus: +500🪙 +1💎','success')},2000)}
+}
+
+/* ===== DECORATE ===== */
+function decorateFarm(){
+  const ground=document.getElementById('farm-ground');
+  let label=document.getElementById('farm-label');
+  if(!label){label=document.createElement('div');label.id='farm-label';label.style.cssText='position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,.6);font-weight:700;pointer-events:none;z-index:5';ground.appendChild(label)}
+  label.textContent=`🌾 ${G.name}'in Çiftliği`;
+}
+
+/* ===== KEYBOARD ===== */
+document.addEventListener('click',e=>{if(!e.target.closest('#ctx-menu'))hideCtxMenu()});
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('welcome-screen').style.display!=='none')return;
+  if(e.key==='Escape'){closePanel();hideCtxMenu();setTool('hand')}
+  if(e.key==='1')setTool('hand');if(e.key==='2')setTool('plow');
+  if(e.key==='3')openPanel('seedSelect');if(e.key==='4')setTool('harvest');
+  if(e.key==='5')setTool('sell');if(e.key==='6')setTool('remove');
+  if(e.key==='+'||e.key==='=')zoomIn();if(e.key==='-')zoomOut();
+  if(e.key==='h'||e.key==='H')centerFarm();
+  if(e.key==='b'||e.key==='B')openPanel('bag');
+});
+document.getElementById('farmer-name-input').addEventListener('keydown',e=>{if(e.key==='Enter')startGame()});
+</script>
+<script>
+document.addEventListener('click',e=>{
+  const tile=e.target.closest('.tile[data-col]');if(!tile)return;
+  const c=parseInt(tile.dataset.col),r=parseInt(tile.dataset.row);
+  if(!isNaN(c)&&!isNaN(r))onTileClick(c,r,e);
+},false);
+</script>
+</body>
+</html>
